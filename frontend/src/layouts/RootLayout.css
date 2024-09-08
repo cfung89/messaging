@@ -1,0 +1,12 @@
+.root-layout {
+  user-select: none;
+  transition: 0.3s;
+}
+
+.sidebar-expanded {
+  margin-left: var(--sidebar-expanded-width);
+}
+
+.sidebar-collapsed {
+  margin-left: var(--sidebar-collapsed-width);
+}

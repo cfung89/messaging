@@ -1,0 +1,6 @@
+:root {
+  --sidebar-expanded-width: 310px;
+  --sidebar-collapsed-width: 60px;
+  --background: white;
+  font-family: "Open Sans", sans-serif;
+}
