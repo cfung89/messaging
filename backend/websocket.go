@@ -5,16 +5,14 @@ import (
 	"crypto/sha1"
 	"encoding/base64"
 	"encoding/binary"
-	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net"
 	"strconv"
 )
 
 // Upgrades connection to WebSocket
-func upgradeToWebSocket(conn *net.Conn, request map[string]string) error {
+func (server *Server) upgradeToWebSocket(conn *net.Conn, request map[string]string) error {
 	websocketAccept := generateWebSocketAccept(request["sec-websocket-key"])
 	response := fmt.Sprintf("HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: %s\r\n\r\n", websocketAccept)
 
@@ -39,7 +37,7 @@ func generateWebSocketAccept(key string) string {
 }
 
 // Reads all messages sent through WebSocket
-func readWSFrame(conn *net.Conn) {
+func (server *Server) readWSFrame(conn *net.Conn) {
 	reader := bufio.NewReader(*conn)
 	decoded := make([]byte, 0)
 	var client *Client
@@ -101,7 +99,6 @@ func readWSFrame(conn *net.Conn) {
 			length = int(binary.BigEndian.Uint16(payloadLen))
 		default:
 			log.Printf("Unsupported length: %d", payloadLen)
-			// return fmt.Errorf("Unsupported length: %d", payloadLen)
 		}
 
 		maskKey := make([]byte, 4)
@@ -129,14 +126,15 @@ func readWSFrame(conn *net.Conn) {
 			// Text frame
 			log.Printf("MESSAGE: %s\n", decoded)
 			if fmt.Sprintf("%s", decoded) == "Hello Server" {
-				err = sendWSFrame(conn, []byte("Hello Client"))
+				err = server.sendWSFrame(conn, []byte("Hello Client"))
 				if err != nil {
 					log.Printf("Unable to write frame to client")
 				}
 
 				log.Println("Server Hello done")
-				room := generateRoom() // placeholder function, will get room from client
+				room := generateRoom()
 				client = handleNewClient(conn, room)
+				server.addClient(client)
 				decoded = make([]byte, 0)
 				continue
 			}
@@ -158,14 +156,14 @@ func readWSFrame(conn *net.Conn) {
 			return
 		case 0x9:
 			// Ping frame
-			err = sendPong(conn, decoded)
+			err = client.sendPong(conn, decoded)
 			if err != nil {
 				log.Println(err)
 			}
 		case 0xA:
 			// Pong frame
 			if (&Client{}) == client {
-				client.Ping <- false
+				client.ping <- false
 			}
 		default:
 			log.Println("Error: Unknown opcode")
@@ -180,7 +178,7 @@ func readWSFrame(conn *net.Conn) {
 		if fin {
 			chatroom := chatrooms[message.Room]
 			for _, n := range chatroom {
-				connect := *n.Connection
+				connect := *n.connection
 				connect.Write([]byte(decoded))
 			}
 
@@ -190,7 +188,7 @@ func readWSFrame(conn *net.Conn) {
 }
 
 // Send WebSocket Frame to client
-func sendWSFrame(conn *net.Conn, message []byte) error {
+func (server *Server) sendWSFrame(conn *net.Conn, message []byte) error {
 	frame := []byte{0x81}
 	length := len(message)
 	if length <= 125 {
@@ -210,35 +208,4 @@ func sendWSFrame(conn *net.Conn, message []byte) error {
 
 	_, err := (*conn).Write(frame)
 	return err
-}
-
-type MessageText struct {
-	Author   string
-	Room     string
-	Type     string
-	Text     string
-	TimeSent *DateTime
-}
-
-type MessageByte struct {
-	Author   string
-	Room     string
-	Type     string
-	Text     []byte
-	TimeSent *DateTime
-}
-
-type DateTime struct {
-	Year   int
-	Month  int
-	Day    int
-	Hour   int
-	Minute int
-	Second int
-}
-
-func handleTextMessage(decoded []byte) (*MessageText, error) {
-	var message *MessageText
-	err := json.Unmarshal([]byte(decoded), &message)
-	return message, err
 }

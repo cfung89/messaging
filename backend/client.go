@@ -7,33 +7,25 @@ import (
 	"time"
 )
 
-type Client struct {
-	Connection *net.Conn
-	Room       string
-	Ping       chan bool // pinged client
-	Timeout    *time.Ticker
-	PingTimer  *time.Ticker
-}
-
 // Start client timers
 func (client *Client) start() {
 	for {
 		select {
-		case <-client.Timeout.C:
+		case <-client.timeout.C:
 			log.Println("No pong")
 			client.kill()
 			return
-		case <-client.PingTimer.C:
-			err := sendPing(client.Connection)
+		case <-client.pingTimer.C:
+			err := client.sendPing(client.connection)
 			if err != nil {
 				log.Println("Unable to send ping", err)
 			}
-			client.Timeout.Stop()
-			client.Timeout = time.NewTicker(10 * time.Second)
-			client.Ping <- true
-		case val := <-client.Ping:
+			client.timeout.Stop()
+			client.timeout = time.NewTicker(10 * time.Second)
+			client.ping <- true
+		case val := <-client.ping:
 			if val == false {
-				client.Timeout.Stop()
+				client.timeout.Stop()
 			}
 		}
 	}
@@ -41,25 +33,25 @@ func (client *Client) start() {
 
 // Close client
 func (client *Client) kill() {
-	close(client.Ping)
-	(*client.Connection).Close()
-	client.Timeout.Stop()
-	client.PingTimer.Stop()
+	(*client.connection).Close()
+	close(client.ping)
+	client.timeout.Stop()
+	client.pingTimer.Stop()
 
-	room := client.Room
+	room := client.room
 	client = nil // Client struct will be garbage collected from every room
 	delete(chatrooms, room)
 }
 
 // Send ping to client
-func sendPing(conn *net.Conn) error {
+func (client *Client) sendPing(conn *net.Conn) error {
 	frame := []byte{0x89, 0x0}
 	_, err := (*conn).Write(frame)
 	return err
 }
 
 // Send pong to client
-func sendPong(conn *net.Conn, payload []byte) error {
+func (client *Client) sendPong(conn *net.Conn, payload []byte) error {
 	frame := []byte{0x8A}
 	length := len(payload)
 	if length <= 125 {

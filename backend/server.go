@@ -7,14 +7,28 @@ import (
 	"log"
 	"net"
 	"strings"
+	"time"
 )
 
 const (
 	PORT string = "8000"
+	PING bool   = false
 )
 
+type Server struct {
+	Clients map[string]*Client
+	Room    *Room
+}
+
+type Client struct {
+	connection *net.Conn
+	ping       chan bool // true == pinged client
+	timeout    *time.Ticker
+	pingTimer  *time.Ticker
+}
+
 // Start TCP server and accept connection requests
-func main() {
+func (server *Server) start() {
 	ln, err := net.Listen("tcp", "localhost:"+PORT)
 	if err != nil {
 		log.Fatalln("Server error:", err)
@@ -30,21 +44,22 @@ func main() {
 			continue
 		}
 
-		go handleConnection(&conn)
+		go server.handleConnection(&conn)
 	}
 }
 
 // Function to handle connection from client
-func handleConnection(conn *net.Conn) {
+func (server *Server) handleConnection(conn *net.Conn) {
 
 	reader := bufio.NewReader(*conn)
-	request, readErr := handleHTTPRequest(reader)
+	request, readErr := server.handleHTTPRequest(reader)
 	if readErr != nil {
 		log.Println("Failed to read request: ", readErr)
 	}
 
 	switch {
 	case len(request["URL"]) >= 5 && request["URL"][:5] == "/user":
+		// URI = "/user/USER_ID"
 		userID := request["URL"][5:]
 		err := userRequestHandler(userID, conn)
 		if err != nil {
@@ -52,12 +67,12 @@ func handleConnection(conn *net.Conn) {
 		}
 	case request["URL"] == "/ws":
 		if request["upgrade"] == "websocket" {
-			err := upgradeToWebSocket(conn, request)
+			err := server.upgradeToWebSocket(conn, request)
 			if err != nil {
 				log.Println("Write error, cannot upgrade to WebSocket:", err)
 			}
 			log.Println("WebSocket connection established")
-			go readWSFrame(conn)
+			go server.readWSFrame(conn)
 		} else {
 			log.Println("Not a WebSocketUpgrade request")
 			err := badRequestHandler(conn)
@@ -65,7 +80,6 @@ func handleConnection(conn *net.Conn) {
 				log.Println("Cannot send Error 400 to client", err)
 			}
 		}
-
 	default:
 		err := notFoundHandler(conn)
 		if err != nil {
@@ -76,7 +90,7 @@ func handleConnection(conn *net.Conn) {
 }
 
 // Function to handle HTTP request from client
-func handleHTTPRequest(reader *bufio.Reader) (map[string]string, error) {
+func (server *Server) handleHTTPRequest(reader *bufio.Reader) (map[string]string, error) {
 	request := make(map[string]string)
 	line, err := reader.ReadString('\n')
 	if err != nil {
@@ -115,4 +129,8 @@ func handleHTTPRequest(reader *bufio.Reader) (map[string]string, error) {
 		request[parts[0]] = parts[1]
 	}
 	return request, err
+}
+
+func (server *Server) addClient(client *Client) {
+
 }
