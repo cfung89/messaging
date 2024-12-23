@@ -2,9 +2,9 @@ import { useContext } from "react";
 import ChatsContext from "../context/ChatsContext";
 
 const useChats = () => {
-  const context = useContext(ChatsContext);
+  const { chatList, addChatList, updateChatList } = useContext(ChatsContext);
 
-  return context;
+  return { chatList, addChatList, updateChatList };
 };
 
 export default useChats;

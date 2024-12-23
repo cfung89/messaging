@@ -1,7 +1,12 @@
 import "./Home.css";
 
 const Home = () => {
-  return <div>Hello from Home</div>;
+  return (
+    <div>
+      <h1>Welcome</h1>
+      <div>Add authentication here</div>
+    </div>
+  );
 };
 
 export default Home;

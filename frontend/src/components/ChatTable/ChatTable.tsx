@@ -1,29 +1,42 @@
 import { IChats } from "../../scripts/constants";
+import { Outlet, useParams, useNavigate } from "react-router-dom";
 import useChats from "../../hooks/useChats";
 
 import "./ChatTable.css";
 
 const ChatTable = () => {
   const { chatList } = useChats();
+  const { chatID } = useParams();
+  const navigate = useNavigate();
+
   function handleChatClick(chat: IChats) {
-    console.log(chat);
+    navigate(chat.url);
   }
 
   return (
-    <div className="grid-container">
-      {chatList.map((chat) => {
-        return (
-          <div
-            key={chat.name}
-            className="grid-item"
-            onClick={() => {
-              handleChatClick(chat);
-            }}
-          >
-            {chat.name}
-          </div>
-        );
-      })}
+    <div>
+      {chatID ? (
+        <Outlet />
+      ) : (
+        <table className="table-container">
+          <tbody>
+            {chatList.map((chat: IChats) => {
+              return (
+                <tr key={chat.id}>
+                  <th
+                    className="table-item"
+                    onClick={() => {
+                      handleChatClick(chat);
+                    }}
+                  >
+                    {chat.name}
+                  </th>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 };

@@ -6,10 +6,13 @@ import {
   BaseSyntheticEvent,
 } from "react";
 
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import useChats from "../../hooks/useChats";
+import useRClick from "../../hooks/useRClick";
+import { CLRClick } from "./chatListStyles";
 
 import "./ChatList.css";
+import { IChats } from "../../scripts/constants";
 
 interface IChatListProps {
   sidebarOpen: boolean;
@@ -17,11 +20,27 @@ interface IChatListProps {
 }
 
 const ChatList = ({ sidebarOpen, setSidebarOpen }: IChatListProps) => {
+  const navigate = useNavigate();
   const [searchChat, setSearchChat] = useState("");
-  const { chatList } = useChats();
+  const { chatList, addChatList } = useChats();
+
+  // for right-click menu
+  const { clicked, setClicked, points, setPoints } = useRClick();
 
   function handleSearchChange(event: BaseSyntheticEvent) {
     setSearchChat(event.target.value);
+  }
+
+  function onNewChat() {
+    const id = self.crypto.randomUUID();
+    const newChat = {
+      name: "Unnamed Chat",
+      url: `/chats/${id}`,
+      id: id,
+      msg: [],
+    };
+    addChatList(newChat);
+    navigate(newChat.url);
   }
 
   useEffect(() => {
@@ -34,54 +53,74 @@ const ChatList = ({ sidebarOpen, setSidebarOpen }: IChatListProps) => {
     return () => window.removeEventListener("resize", handleResize);
   }, [sidebarOpen]);
 
-  if (chatList.length === 0) {
-    return <div>No chats</div>;
-  } else {
-    return (
-      <div
-        className={`sidebar ${sidebarOpen ? "sidebar-open" : "sidebar-closed"}`}
-      >
-        <table className="sidebar-table">
-          <tbody>
-            <tr>
-              <td>{sidebarOpen && <div className="logo">Messaging</div>}</td>
-              <td>
-                <button
-                  className="sidebar-toggle"
-                  onClick={() => setSidebarOpen(!sidebarOpen)}
-                >
-                  {sidebarOpen ? "Close" : "Open"}
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+  return (
+    <div
+      className={`sidebar ${sidebarOpen ? "sidebar-open" : "sidebar-closed"}`}
+    >
+      <table className="sidebar-table">
+        <tbody>
+          <tr>
+            <td>{sidebarOpen && <div className="logo">Messaging</div>}</td>
+            <td>
+              <button
+                className="sidebar-toggle"
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+              >
+                {sidebarOpen ? "Close" : "Open"}
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
 
-        {sidebarOpen && (
-          <>
-            <input
-              className="search-bar"
-              value={searchChat}
-              onChange={handleSearchChange}
-            />
-            <nav className="sidebar-content">
-              <ul>
-                {chatList
-                  .filter((chat) =>
-                    chat.name.toUpperCase().includes(searchChat.toUpperCase()),
-                  )
-                  .map((chat) => (
-                    <li key={chat.name}>
-                      <NavLink to={chat.url}>{chat.name}</NavLink>
-                    </li>
-                  ))}
-              </ul>
-            </nav>
-          </>
-        )}
-      </div>
-    );
-  }
+      {sidebarOpen && (
+        <>
+          <input
+            className="search-bar"
+            value={searchChat}
+            onChange={handleSearchChange}
+          />
+          <div className="sidebar-content">
+            <ul>
+              {chatList
+                .filter((chat: IChats) =>
+                  chat.name.toUpperCase().includes(searchChat.toUpperCase()),
+                )
+                .map((chat: IChats) => (
+                  <li
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      setClicked(true);
+                      setPoints({ x: e.pageX, y: e.pageY });
+                    }}
+                    key={chat.url}
+                  >
+                    <NavLink to={chat.url}>{chat.name}</NavLink>
+                  </li>
+                ))}
+            </ul>
+            {clicked && (
+              <CLRClick $top={points.y} $left={points.x}>
+                <ul>
+                  <li>Rename</li>
+                  <li>Delete</li>
+                </ul>
+              </CLRClick>
+            )}
+          </div>
+          <div className="new-chat-container">
+            <button
+              type="submit"
+              className="new-chat-button"
+              onClick={() => onNewChat()}
+            >
+              New Chat
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
 };
 
 export default ChatList;

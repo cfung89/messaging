@@ -1,7 +1,13 @@
-import { ReactNode, useState, useEffect, createContext } from "react";
+import { ReactNode, useState, createContext } from "react";
 import { IContacts } from "../scripts/constants";
 
-const ContactsContext = createContext<Array<IContacts>>([] as IContacts[]);
+const ContactsContext = createContext<{
+  contactList: Array<IContacts>;
+  saveContactList: (newContactList: IContacts) => void;
+}>({
+  contactList: [],
+  saveContactList: () => {},
+});
 
 interface IContactsContextProps {
   children: ReactNode;
@@ -14,16 +20,12 @@ export const ContactsContextProvider = ({
 }: IContactsContextProps) => {
   const [contactList, setContactList] = useState<Array<IContacts>>(contacts);
 
-  const saveContactList = (newContact: Array<IContacts>) => {
-    useEffect(() => {
-      setContactList(newContact);
-    }, []);
+  const saveContactList = (newContactList: IContacts) => {
+    setContactList([...contactList, newContactList]);
   };
 
   return (
-    <ContactsContext.Provider
-      value={{ contactList: contactList, saveContactList }}
-    >
+    <ContactsContext.Provider value={{ contactList, saveContactList }}>
       {children}
     </ContactsContext.Provider>
   );

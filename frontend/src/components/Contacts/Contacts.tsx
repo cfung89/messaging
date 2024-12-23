@@ -15,7 +15,7 @@ const Contacts = () => {
   } else {
     return (
       <div className="grid-container">
-        {contactList.map((contact) => {
+        {contactList.map((contact: IContacts) => {
           return (
             <div
               key={contact.name}

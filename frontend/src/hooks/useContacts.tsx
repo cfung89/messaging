@@ -2,9 +2,9 @@ import { useContext } from "react";
 import ContactsContext from "../context/ContactsContext";
 
 const useContacts = () => {
-  const context = useContext(ContactsContext);
+  const { contactList, saveContactList } = useContext(ContactsContext);
 
-  return context;
+  return { contactList, saveContactList };
 };
 
 export default useContacts;

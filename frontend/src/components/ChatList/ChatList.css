@@ -84,3 +84,14 @@ sidebar-toggle:hover {
   margin-left: 21px;
   margin-top: 10px;
 }
+
+.new-chat-container {
+  color: black;
+}
+
+.new-chat-button {
+  border-radius: 50px;
+  position: absolute;
+  bottom: 30px;
+  right: 10px;
+}

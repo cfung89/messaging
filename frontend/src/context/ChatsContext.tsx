@@ -1,7 +1,16 @@
-import { ReactNode, useState, useEffect, createContext } from "react";
+import { ReactNode, useState, createContext } from "react";
 import { IChats } from "../scripts/constants";
 
-const ChatsContext = createContext<Array<IChats>>([]);
+const ChatsContext = createContext<{
+  chatList: Array<IChats>;
+  addChatList: (newChat: IChats) => void;
+  updateChatList: (newChat: IChats) => void;
+}>({
+  //default values
+  chatList: [],
+  addChatList: () => {},
+  updateChatList: () => {},
+});
 
 interface IChatsContextProps {
   children: ReactNode;
@@ -14,14 +23,21 @@ export const ChatsContextProvider = ({
 }: IChatsContextProps) => {
   const [chatList, setChatList] = useState<Array<IChats>>(chats);
 
-  const saveChatList = (newChat: Array<IChats>) => {
-    useEffect(() => {
-      setChatList(newChat);
-    }, []);
+  const addChatList = (newChat: IChats) => {
+    setChatList([...chatList, newChat]);
+  };
+
+  const updateChatList = (newChat: IChats) => {
+    const idx = chatList.findIndex((x) => x.id === newChat.id);
+    setChatList([
+      ...chatList.slice(0, idx),
+      newChat,
+      ...chatList.slice(idx + 1),
+    ]);
   };
 
   return (
-    <ChatsContext.Provider value={{ chatList: chatList, saveChatList }}>
+    <ChatsContext.Provider value={{ chatList, addChatList, updateChatList }}>
       {children}
     </ChatsContext.Provider>
   );

@@ -1,0 +1,25 @@
+.message-box {
+  width: 70vw;
+  overflow-y: auto;
+}
+
+.message-send {
+  border: 2px solid blue;
+  border-radius: 5px;
+  inline-size: 70vw;
+  margin-block-end: 1em;
+  overflow-wrap: break-word;
+}
+
+.message-receive {
+  border: 2px solid gray;
+  border-radius: 5px;
+  inline-size: 70vw;
+  margin-block-end: 1em;
+  overflow-wrap: break-word;
+}
+
+.message-container {
+  overflow-y: auto;
+  white-space: pre-wrap;
+}
