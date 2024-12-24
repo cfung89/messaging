@@ -2,9 +2,9 @@
 
 ```mermaid
 sequenceDiagram;
-    create participant Client
-    create participant Authentication Server
-    create participant Authentication Database
+    participant Client
+    participant Authentication Server
+    participant Authentication Database
 
     Client->>Authentication Server: POST /auth — Login/Authentication request
     activate Authentication Server
@@ -15,12 +15,19 @@ sequenceDiagram;
     Authentication Server-->>Client: Returns JSON Web Token (JWT)
     deactivate Authentication Server
 
-    destroy Authentication Server
-    destroy Authentication Database
+```
 
-    create participant Reverse Proxy
-    create participant API Server
-    create participant API Database
+<br/>
+<br/>
+<br/>
+
+```mermaid
+sequenceDiagram;
+
+    participant Client
+    participant Reverse Proxy
+    participant API Server
+    participant API Database
 
     Client->>Reverse Proxy: POST /getData and /ws — Request containing JWT
     activate Reverse Proxy
@@ -32,12 +39,8 @@ sequenceDiagram;
     API Server->>API Database: GET data
     activate API Database
     API Database-->>API Server: Data
-    activate API Database
+    deactivate API Database
     API Server-->>Client: Data
     deactivate API Server
 
-    destroy Client
-    destroy Reverse Proxy
-    destroy API Server
-    destroy API Database
 ```
