@@ -1,0 +1,32 @@
+# TODO list
+
+- [ ] Authentication
+  - [ ] Authentication Server
+    - [ ] Connection to Auth Database
+  - [ ] JWT implementation
+    - [ ] JWT creation
+    - [ ] JWT validation
+  - [ ] Auth Database
+    - [ ] Username and Password creation
+    - [ ] Username and Password validation
+- [ ] Reverse Proxy
+  - [ ] JWT validation
+  - [ ] Connection to API Server
+- [ ] API
+  - [ ] API Server
+    - [ ] HTTP server for client to retrieve needed data
+    - [ ] Accept Websocket connection
+    - [ ] Implement chat rooms
+    - [ ] Message routing
+  - [ ] API Database
+    - [ ] Get user data
+    - [ ] Get all messages
+- [ ] Client
+  - [ ] Sign up page
+  - [ ] Login page
+  - [ ] Messaging interface
+  - [ ] Chat list
+  - [ ] Connection to Authentication server
+  - [ ] Connection to API server and Reverse Proxy
+- [ ] Simulation
+- [ ] Final E2E testing
