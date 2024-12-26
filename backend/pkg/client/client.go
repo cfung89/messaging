@@ -1,4 +1,4 @@
-package main
+package client
 
 import (
 	"fmt"
@@ -9,19 +9,19 @@ import (
 
 type Client struct {
 	connection *net.Conn
-	ping       chan bool // true == pinged client
 	room       string
+	ping       chan bool // true == pinged client
 	timeout    *time.Ticker
 	pingTimer  *time.Ticker
 }
 
 // Start client timers
-func (client *Client) start() {
+func (client *Client) Start() {
 	for {
 		select {
 		case <-client.timeout.C:
 			log.Println("No pong")
-			client.kill()
+			client.Kill()
 			return
 		case <-client.pingTimer.C:
 			err := client.sendPing(client.connection)
@@ -40,7 +40,7 @@ func (client *Client) start() {
 }
 
 // Close client
-func (client *Client) kill() {
+func (client *Client) Kill() {
 	(*client.connection).Close()
 	close(client.ping)
 	client.timeout.Stop()
@@ -52,14 +52,14 @@ func (client *Client) kill() {
 }
 
 // Send ping to client
-func (client *Client) sendPing(conn *net.Conn) error {
+func (client *Client) SendPing(conn *net.Conn) error {
 	frame := []byte{0x89, 0x0}
 	_, err := (*conn).Write(frame)
 	return err
 }
 
 // Send pong to client
-func (client *Client) sendPong(conn *net.Conn, payload []byte) error {
+func (client *Client) SendPong(conn *net.Conn, payload []byte) error {
 	frame := []byte{0x8A}
 	length := len(payload)
 	if length <= 125 {

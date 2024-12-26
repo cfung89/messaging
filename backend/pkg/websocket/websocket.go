@@ -9,6 +9,8 @@ import (
 	"log"
 	"net"
 	"strconv"
+
+	"github.com/cfung89/messaging/backend/pkg/client"
 )
 
 // Upgrades connection to WebSocket
@@ -40,18 +42,13 @@ func generateWebSocketAccept(key string) string {
 func ReadWSFrame(conn *net.Conn) {
 	reader := bufio.NewReader(*conn)
 	decoded := make([]byte, 0)
-	var client *Client
+	var c *client.Client
 
 	for {
 		firstByte, err := reader.ReadByte()
 		if err != nil {
 			log.Println("Error reading first data frame byte", err)
-			if (&Client{}) == client {
-				(*client).kill()
-			} else {
-				(*conn).Close()
-			}
-			return
+			(*conn).Close()
 		}
 
 		fin := firstByte&0x80 != 0
@@ -59,27 +56,25 @@ func ReadWSFrame(conn *net.Conn) {
 
 		secondByte, err := reader.ReadByte()
 		if err != nil {
-			log.Println("Error reading length of payload", err)
+			log.Fatalf("Error reading length of payload: %s\n", err)
 		}
 
 		temp := fmt.Sprintf("%b", secondByte)
 		maskStr, err := strconv.ParseInt(string(temp[0]), 2, 64)
 		if err != nil {
-			log.Println("Error converting mask bit", err)
+			log.Fatalf("Error converting mask bit: %s\n", err)
 		}
 		payloadLen, err := strconv.ParseInt(temp[1:], 2, 64)
 		if err != nil {
-			log.Println("Error converting payload length bits", err)
+			log.Fatalf("Error converting payload length bits: %s\n", err)
 		}
 
 		mask := maskStr == 1
 		if mask == false {
-			fmt.Println("Unmasked message from client")
-			return
+			log.Fatalf("Unmasked message from client\n")
 		}
 
 		var length int
-
 		switch {
 		case payloadLen <= 125:
 			length = int(payloadLen)
@@ -126,15 +121,15 @@ func ReadWSFrame(conn *net.Conn) {
 			// Text frame
 			log.Printf("MESSAGE: %s\n", decoded)
 			if fmt.Sprintf("%s", decoded) == "Hello Server" {
-				err = server.sendWSFrame(conn, []byte("Hello Client"))
+				err = SendWSFrame(conn, []byte("Hello Client"))
 				if err != nil {
 					log.Printf("Unable to write frame to client")
 				}
 
 				log.Println("Server Hello done")
 				room := generateRoom()
-				client = handleNewClient(conn, room)
-				server.addClient(client)
+				c = handleNewClient(conn, room)
+				server.addClient(c)
 				decoded = make([]byte, 0)
 				continue
 			}
@@ -148,27 +143,27 @@ func ReadWSFrame(conn *net.Conn) {
 			// pass
 		case 0x8:
 			// Connection close frame
-			if (&Client{}) == client {
-				(*client).kill()
+			if (&Client{}) == c {
+				(*c).kill()
 			} else {
 				(*conn).Close()
 			}
 			return
 		case 0x9:
 			// Ping frame
-			err = client.sendPong(conn, decoded)
+			err = c.sendPong(conn, decoded)
 			if err != nil {
 				log.Println(err)
 			}
 		case 0xA:
 			// Pong frame
-			if (&Client{}) == client {
-				client.ping <- false
+			if (&Client{}) == c {
+				c.ping <- false
 			}
 		default:
 			log.Println("Error: Unknown opcode")
-			if (&Client{}) == client {
-				(*client).kill()
+			if (&Client{}) == c {
+				(*c).kill()
 			} else {
 				(*conn).Close()
 			}

@@ -7,15 +7,15 @@ import (
 )
 
 type Server interface {
-	start(port int)                  // general for all (handles TCP connection)
-	handleConnection(conn *net.Conn) // specific for each server type
+	Start(port int)                  // general for all (handles TCP connection)
+	HandleConnection(conn *net.Conn) // specific for each server type
 }
 
 type BaseServer struct {
 	server Server
 }
 
-func (b *BaseServer) start(port int) {
+func (b *BaseServer) Start(port int) {
 	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		log.Println("Next port, taken: ", port)
@@ -30,6 +30,6 @@ func (b *BaseServer) start(port int) {
 			log.Println("Connection error:", err)
 			continue
 		}
-		go b.server.handleConnection(&conn)
+		go b.server.HandleConnection(&conn)
 	}
 }

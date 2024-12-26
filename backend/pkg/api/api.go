@@ -18,7 +18,7 @@ type HTTPServer struct {
 }
 
 // Function to handle connection from client
-func (h *HTTPServer) handleConnection(conn *net.Conn) {
+func (h *HTTPServer) HandleConnection(conn *net.Conn) {
 	reader := bufio.NewReader(*conn)
 	request, readErr := h.handleHTTPRequest(reader)
 	if readErr != nil {
@@ -27,7 +27,7 @@ func (h *HTTPServer) handleConnection(conn *net.Conn) {
 
 	switch {
 	case len(request["URL"]) >= 5 && request["URL"][:5] == "/user":
-		// URI = "/user/USER_ID"
+		// URL = "/user/USER_ID"
 		userID := request["URL"][5:]
 		err := handlers.UserRequestHandler(userID, conn)
 		if err != nil {
@@ -84,7 +84,6 @@ func (h *HTTPServer) handleHTTPRequest(reader *bufio.Reader) (map[string]string,
 			log.Println("Error reading line:", line)
 			break
 		}
-		fmt.Print(line)
 
 		parts := strings.Split(strings.TrimSpace(line), ": ")
 		if len(parts) == 1 {
