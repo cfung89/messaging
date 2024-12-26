@@ -1,4 +1,4 @@
-package main
+package websocket
 
 import (
 	"bufio"
@@ -12,7 +12,7 @@ import (
 )
 
 // Upgrades connection to WebSocket
-func (server *Server) upgradeToWebSocket(conn *net.Conn, request map[string]string) error {
+func UpgradeToWebSocket(conn *net.Conn, request map[string]string) error {
 	websocketAccept := generateWebSocketAccept(request["sec-websocket-key"])
 	response := fmt.Sprintf("HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: %s\r\n\r\n", websocketAccept)
 
@@ -37,7 +37,7 @@ func generateWebSocketAccept(key string) string {
 }
 
 // Reads all messages sent through WebSocket
-func (server *Server) readWSFrame(conn *net.Conn) {
+func ReadWSFrame(conn *net.Conn) {
 	reader := bufio.NewReader(*conn)
 	decoded := make([]byte, 0)
 	var client *Client
@@ -188,7 +188,7 @@ func (server *Server) readWSFrame(conn *net.Conn) {
 }
 
 // Send WebSocket Frame to client
-func (server *Server) sendWSFrame(conn *net.Conn, message []byte) error {
+func SendWSFrame(conn *net.Conn, message []byte) error {
 	frame := []byte{0x81}
 	length := len(message)
 	if length <= 125 {

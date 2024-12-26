@@ -7,6 +7,14 @@ import (
 	"time"
 )
 
+type Client struct {
+	connection *net.Conn
+	ping       chan bool // true == pinged client
+	room       string
+	timeout    *time.Ticker
+	pingTimer  *time.Ticker
+}
+
 // Start client timers
 func (client *Client) start() {
 	for {
