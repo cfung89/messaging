@@ -16,7 +16,7 @@ type JWTHeaders struct {
 type JWTBody struct {
 	Iss  string `json:"iss"`  // issuer
 	Sub  string `json:"sub"`  // subject
-	Exp  string `json:"exp"`  // expiration time (1 day)
+	Exp  int64  `json:"exp"`  // expiration time (1 day)
 	Name string `json:"name"` // Name of user
 	ID   string `json:"id"`   // ID of user
 }
@@ -26,7 +26,7 @@ type JWTSignature struct {
 }
 
 type UserInfo struct {
-	Username string
+	Email    string
 	Password string
 	ID       string
 }
