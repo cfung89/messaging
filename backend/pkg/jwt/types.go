@@ -1,10 +1,13 @@
 package jwt
 
+import "crypto/rsa"
+
 type Token struct {
-	Raw       string        // encoded
-	Header    *JWTHeaders   // decoded
-	Claims    *JWTBody      // decoded
-	Signature *JWTSignature // decoded
+	Raw        string        // encoded
+	Header     *JWTHeaders   // decoded
+	Claims     *JWTBody      // decoded
+	Signature  *JWTSignature // decoded
+	PrivateKey *rsa.PrivateKey
 }
 
 type JWTHeaders struct {
