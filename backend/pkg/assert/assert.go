@@ -1,6 +1,7 @@
 package assert
 
 import (
+	"fmt"
 	"log/slog"
 	"os"
 )
@@ -13,7 +14,7 @@ type EqualIn struct {
 
 func Equal(input *EqualIn) {
 	if input.A != input.B {
-		slog.Error(input.Err)
+		slog.Error(fmt.Sprintf("Mismatch: %s != %s", input.A, input.B), "error", input.Err)
 	}
 	os.Exit(1)
 }

@@ -1,11 +1,11 @@
 package jwt
 
 import (
-	"crypto/hmac"
+	"crypto"
 	"crypto/rand"
+	"crypto/rsa"
 	"crypto/sha256"
 	"encoding/base64"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -17,12 +17,12 @@ import (
 	"github.com/cfung89/messaging/backend/pkg/utils"
 )
 
-func GenerateToken(info *UserInfo) (*Token, error) {
+func GenerateToken(info *UserInfo, filenames *SecretFilenames) (*Token, error) {
 	headers := &JWTHeaders{
 		Alg: "RS256", // RSA SHA-256
 		Typ: "JWT",
 	}
-	iss, err := os.ReadFile("./iss.env")
+	iss, err := os.ReadFile(filenames.Iss)
 	if err != nil {
 		return nil, fmt.Errorf("Unable to read issuer from file: %s", err)
 	}
@@ -34,11 +34,16 @@ func GenerateToken(info *UserInfo) (*Token, error) {
 		Exp: time.Now().AddDate(0, 0, 1).Unix(),
 		ID:  info.ID,
 	}
+	privateKey, err := utils.LoadPrivateKey(filenames.PrivateKey)
+	if err != nil {
+		return nil, err
+	}
 	token := &Token{
-		Raw:       "",
-		Header:    headers,
-		Claims:    claims,
-		Signature: nil,
+		Raw:        "",
+		Header:     headers,
+		Claims:     claims,
+		Signature:  nil,
+		PrivateKey: privateKey,
 	}
 
 	h, c, err := convertJson(headers, claims)
@@ -54,7 +59,7 @@ func GenerateToken(info *UserInfo) (*Token, error) {
 		return nil, err
 	}
 	encoded := fmt.Sprintf("%s.%s.", encodedH, encodedC)
-	token.Signature, err = generateSignature(encoded)
+	token.Signature, err = generateSignature(encoded, token.PrivateKey)
 	if err != nil {
 		return nil, err
 	}
@@ -81,25 +86,15 @@ func encodeJWT(s string) (string, error) {
 		return "", errors.New("Error, JWT string is not valid JSON")
 	}
 	token := base64.URLEncoding.EncodeToString([]byte(s))
-	// if err != nil {
-	// 	return "", fmt.Errorf("Base64 error: %s", err)
-	// }
 	return string(token), nil
 }
 
 // Generate signature based on the encoded JSON
-func generateSignature(s string) (*JWTSignature, error) {
-	secret := make([]byte, 64)
-	_, err := rand.Read(secret)
+func generateSignature(s string, privateKey *rsa.PrivateKey) (*JWTSignature, error) {
+	hashed := sha256.Sum256([]byte(s))
+	signature, err := rsa.SignPKCS1v15(rand.Reader, privateKey, crypto.SHA256, hashed[:])
 	if err != nil {
-		return nil, fmt.Errorf("Error generating a random secret: %s", err)
+		return nil, fmt.Errorf("Error generating JWT signature: %s", err)
 	}
-	data := []byte(s)
-	hmac := hmac.New(sha256.New, secret) // new HMAC with hash type and key
-	hmac.Write([]byte(data))             // give data to HMAC
-	dataHmac := hmac.Sum(nil)            // compute HMAC
-	hmacHex := hex.EncodeToString(dataHmac)
-	// secretHex := hex.EncodeToString(secret) // key
-	signature := &JWTSignature{hmacHex}
-	return signature, nil
+	return &JWTSignature{string(signature)}, nil
 }

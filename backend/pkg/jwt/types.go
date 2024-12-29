@@ -8,6 +8,7 @@ type Token struct {
 	Claims     *JWTBody      // decoded
 	Signature  *JWTSignature // decoded
 	PrivateKey *rsa.PrivateKey
+	PublicKey  *rsa.PublicKey
 }
 
 type JWTHeaders struct {
@@ -32,4 +33,10 @@ type UserInfo struct {
 	Email    string
 	Password string
 	ID       string
+}
+
+type SecretFilenames struct {
+	Iss        string
+	PrivateKey string
+	PublicKey  string
 }
