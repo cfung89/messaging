@@ -3,37 +3,38 @@ package jwt
 import "crypto/rsa"
 
 type Token struct {
-	Raw        string        // encoded
-	Header     *JWTHeaders   // decoded
-	Claims     *JWTClaims    // decoded
-	Encoded    [2]string     // encoded string (both parts) without signature
-	Signature  *JWTSignature // decoded
+	Raw        string     // encoded
+	Header     *Headers   // decoded
+	Claims     *Claims    // decoded
+	Signature  *Signature // decoded
+	Parts      [2]string  // not encoded
+	Encoded    [2]string  // encoded string (both parts) without signature
 	PrivateKey *rsa.PrivateKey
 	PublicKey  *rsa.PublicKey
 }
 
-type JWTHeaders struct {
+type Headers struct {
 	Alg string `json:"alg"`
 	Typ string `json:"typ"`
-	Cty string `json:"cty"`
 }
 
-type JWTClaims struct {
-	Iss  string `json:"iss"`  // issuer
-	Sub  string `json:"sub"`  // subject
-	Exp  int64  `json:"exp"`  // expiration time (1 day)
-	Name string `json:"name"` // Name of user
-	ID   string `json:"id"`   // ID of user
+type Claims struct {
+	Iss      string `json:"iss"`      // issuer
+	Sub      string `json:"sub"`      // ID of user
+	Iat      int64  `json:"iat"`      // issued at time
+	Exp      int64  `json:"exp"`      // expiration time (1 day after IAT)
+	Username string `json:"username"` // Name of user
 }
 
-type JWTSignature struct {
+type Signature struct {
 	string
 }
 
 type UserInfo struct {
+	ID       string
+	Username string // not unique
 	Email    string
 	Password string
-	ID       string
 }
 
 type SecretFilenames struct {

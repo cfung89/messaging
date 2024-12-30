@@ -36,3 +36,10 @@ func LessThan(input *LtIn) {
 		os.Exit(1)
 	}
 }
+
+func NotNil(val error) {
+	if val != nil {
+		slog.Error(val.Error())
+		os.Exit(1)
+	}
+}

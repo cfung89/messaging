@@ -28,12 +28,12 @@ func ValidateJWT(jwtStr string, filenames *SecretFilenames) (bool, error) {
 		return false, err
 	}
 	var (
-		headers *JWTHeaders
-		claims  *JWTClaims
+		headers *Headers
+		claims  *Claims
 	)
 	json.Unmarshal([]byte(decodedH), headers)
 	json.Unmarshal([]byte(decodedC), claims)
-	assert.Equal(&assert.EqualIn{A: headers, B: &JWTHeaders{Alg: "RS256", Typ: "JWT"}, Err: "Invalid JWT headers"})
+	assert.Equal(&assert.EqualIn{A: headers, B: &Headers{Alg: "RS256", Typ: "JWT"}, Err: "Invalid JWT headers"})
 	iss, err := os.ReadFile(filenames.Iss)
 	if err != nil {
 		return false, fmt.Errorf("Unable to read issuer from file: %s", err)
@@ -51,7 +51,7 @@ func ValidateJWT(jwtStr string, filenames *SecretFilenames) (bool, error) {
 		Raw:       jwtStr,
 		Header:    headers,
 		Claims:    claims,
-		Signature: &JWTSignature{arr[2]},
+		Signature: &Signature{arr[2]},
 		PublicKey: publicKey,
 	}
 	return validateSignature(token)

@@ -18,83 +18,76 @@ import (
 )
 
 func GenerateToken(info *UserInfo, filenames *SecretFilenames) (*Token, error) {
-	headers := &JWTHeaders{
-		Alg: "RS256", // RSA SHA-256
-		Typ: "JWT",
-	}
 	iss, err := os.ReadFile(filenames.Iss)
 	if err != nil {
 		return nil, fmt.Errorf("Unable to read issuer from file: %s", err)
 	}
 	objs := strings.Split(string(iss), "=")
 	assert.Equal(&assert.EqualIn{A: objs[0], B: "ISS_KEY", Err: "Invalid file read"})
-	claims := &JWTClaims{
-		Iss: objs[1], // magic string
-		Sub: "Connection request",
-		Exp: time.Now().AddDate(0, 0, 1).Unix(),
-		ID:  info.ID,
-	}
 	privateKey, err := utils.LoadPrivateKey(filenames.PrivateKey)
 	if err != nil {
 		return nil, err
 	}
 	token := &Token{
-		Raw:        "",
-		Header:     headers,
-		Claims:     claims,
-		Signature:  nil,
+		Header: &Headers{Alg: "RS256", Typ: "JWT"},
+		Claims: &Claims{
+			Iss:      objs[1], // magic string
+			Sub:      info.ID,
+			Username: info.Username,
+			Iat:      time.Now().Unix(),
+			Exp:      time.Now().AddDate(0, 0, 1).Unix(),
+		},
+		Parts:      [2]string{"", ""},
+		Encoded:    [2]string{"", ""},
 		PrivateKey: privateKey,
 	}
-
-	h, c, err := convertJson(headers, claims)
+	err = convertJson(token)
 	if err != nil {
 		return nil, err
 	}
-	encodedH, err := encodeJWT(h)
+	err = encodeJWT(token)
 	if err != nil {
 		return nil, err
 	}
-	encodedC, err := encodeJWT(c)
+	err = generateSignature(token)
 	if err != nil {
 		return nil, err
 	}
-	encoded := fmt.Sprintf("%s.%s.", encodedH, encodedC)
-	token.Signature, err = generateSignature(encoded, token.PrivateKey)
-	if err != nil {
-		return nil, err
-	}
-	token.Raw = fmt.Sprintf("%s%s", encoded, token.Signature.string)
+	token.Raw = fmt.Sprintf("%s.%s.%s", token.Encoded[0], token.Encoded[1], token.Signature.string)
 	return token, nil
 }
 
 // Convert headers and claims to JSON string
-func convertJson(headers *JWTHeaders, claims *JWTClaims) (string, string, error) {
-	h, err := json.Marshal(headers)
+func convertJson(token *Token) error {
+	h, err := json.Marshal(token.Header)
 	if err != nil {
-		return "", "", fmt.Errorf("Error converting headers struct to JSON string: %s", err)
+		return fmt.Errorf("Error converting headers struct to JSON string: %s", err)
 	}
-	c, err := json.Marshal(claims)
+	c, err := json.Marshal(token.Claims)
 	if err != nil {
-		return "", "", fmt.Errorf("Error converting claims struct to JSON string: %s", err)
+		return fmt.Errorf("Error converting claims struct to JSON string: %s", err)
 	}
-	return string(h), string(c), nil
+	token.Parts[0], token.Parts[1] = string(h), string(c)
+	return nil
 }
 
-// Base64 URL encode JSON headers and JSON claims
-func encodeJWT(s string) (string, error) {
-	if utils.IsJSON(s) {
-		return "", errors.New("Error, JWT string is not valid JSON")
+// Base64 URL encode JSON headers and claims
+func encodeJWT(token *Token) error {
+	if !utils.IsJSON(token.Parts[0]) || !utils.IsJSON(token.Parts[1]) {
+		return errors.New("Error, JWT string is not valid JSON")
 	}
-	token := base64.URLEncoding.EncodeToString([]byte(s))
-	return string(token), nil
+	token.Encoded[0] = base64.URLEncoding.EncodeToString([]byte(token.Parts[0]))
+	token.Encoded[1] = base64.URLEncoding.EncodeToString([]byte(token.Parts[1]))
+	return nil
 }
 
 // Generate signature based on the encoded JSON
-func generateSignature(s string, privateKey *rsa.PrivateKey) (*JWTSignature, error) {
-	hashed := sha256.Sum256([]byte(s))
-	signature, err := rsa.SignPKCS1v15(rand.Reader, privateKey, crypto.SHA256, hashed[:])
+func generateSignature(token *Token) error {
+	hashed := sha256.Sum256([]byte(fmt.Sprintf("%s.%s.", token.Encoded[0], token.Encoded[1])))
+	signature, err := rsa.SignPKCS1v15(rand.Reader, token.PrivateKey, crypto.SHA256, hashed[:])
 	if err != nil {
-		return nil, fmt.Errorf("Error generating JWT signature: %s", err)
+		return fmt.Errorf("Error generating JWT signature: %s", err)
 	}
-	return &JWTSignature{string(signature)}, nil
+	token.Signature = &Signature{string(signature)}
+	return nil
 }
