@@ -5,7 +5,8 @@ import "crypto/rsa"
 type Token struct {
 	Raw        string        // encoded
 	Header     *JWTHeaders   // decoded
-	Claims     *JWTBody      // decoded
+	Claims     *JWTClaims    // decoded
+	Encoded    [2]string     // encoded string (both parts) without signature
 	Signature  *JWTSignature // decoded
 	PrivateKey *rsa.PrivateKey
 	PublicKey  *rsa.PublicKey
@@ -17,7 +18,7 @@ type JWTHeaders struct {
 	Cty string `json:"cty"`
 }
 
-type JWTBody struct {
+type JWTClaims struct {
 	Iss  string `json:"iss"`  // issuer
 	Sub  string `json:"sub"`  // subject
 	Exp  int64  `json:"exp"`  // expiration time (1 day)

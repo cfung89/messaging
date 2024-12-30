@@ -28,7 +28,7 @@ func GenerateToken(info *UserInfo, filenames *SecretFilenames) (*Token, error) {
 	}
 	objs := strings.Split(string(iss), "=")
 	assert.Equal(&assert.EqualIn{A: objs[0], B: "ISS_KEY", Err: "Invalid file read"})
-	claims := &JWTBody{
+	claims := &JWTClaims{
 		Iss: objs[1], // magic string
 		Sub: "Connection request",
 		Exp: time.Now().AddDate(0, 0, 1).Unix(),
@@ -68,7 +68,7 @@ func GenerateToken(info *UserInfo, filenames *SecretFilenames) (*Token, error) {
 }
 
 // Convert headers and claims to JSON string
-func convertJson(headers *JWTHeaders, claims *JWTBody) (string, string, error) {
+func convertJson(headers *JWTHeaders, claims *JWTClaims) (string, string, error) {
 	h, err := json.Marshal(headers)
 	if err != nil {
 		return "", "", fmt.Errorf("Error converting headers struct to JSON string: %s", err)
