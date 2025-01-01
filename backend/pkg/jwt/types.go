@@ -4,7 +4,7 @@ import "crypto/rsa"
 
 type Token struct {
 	Raw        string     // encoded
-	Header     *Headers   // decoded
+	Headers    *Headers   // decoded
 	Claims     *Claims    // decoded
 	Signature  *Signature // decoded
 	Parts      [2]string  // not encoded

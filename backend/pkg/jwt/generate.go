@@ -29,7 +29,7 @@ func GenerateToken(info *UserInfo, filenames *SecretFilenames) (*Token, error) {
 		return nil, err
 	}
 	token := &Token{
-		Header: &Headers{Alg: "RS256", Typ: "JWT"},
+		Headers: &Headers{Alg: "RS256", Typ: "JWT"},
 		Claims: &Claims{
 			Iss:      objs[1], // magic string
 			Sub:      info.ID,
@@ -59,7 +59,7 @@ func GenerateToken(info *UserInfo, filenames *SecretFilenames) (*Token, error) {
 
 // Convert headers and claims to JSON string
 func convertJson(token *Token) error {
-	h, err := json.Marshal(token.Header)
+	h, err := json.Marshal(token.Headers)
 	if err != nil {
 		return fmt.Errorf("Error converting headers struct to JSON string: %s", err)
 	}
