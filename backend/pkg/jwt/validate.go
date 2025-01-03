@@ -15,7 +15,7 @@ import (
 )
 
 func ValidateJWT(jwtStr string, filenames *SecretFilenames) (bool, error) {
-	arr := strings.Split(jwtStr, ".")
+	arr := strings.SplitN(jwtStr, ".", 3)
 	assert.Equal(&assert.EqualIn{A: len(arr), B: 3, Err: "JWT is not 3 parts."})
 	publicKey, err := utils.LoadPublicKey(filenames.PublicKey)
 	if err != nil {
@@ -33,9 +33,8 @@ func ValidateJWT(jwtStr string, filenames *SecretFilenames) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	json.Unmarshal([]byte(token.Parts[0]), token.Headers)
-	json.Unmarshal([]byte(token.Parts[1]), token.Claims)
-	assert.Equal(&assert.EqualIn{A: token.Headers, B: &Headers{Alg: "RS256", Typ: "JWT"}, Err: "Invalid JWT headers"})
+	assert.NotNil(json.Unmarshal([]byte(token.Parts[0]), token.Headers))
+	assert.NotNil(json.Unmarshal([]byte(token.Parts[1]), token.Claims))
 	iss, err := os.ReadFile(filenames.Iss)
 	if err != nil {
 		return false, fmt.Errorf("Unable to read issuer from file: %s", err)
@@ -44,11 +43,12 @@ func ValidateJWT(jwtStr string, filenames *SecretFilenames) (bool, error) {
 	assert.Equal(&assert.EqualIn{A: objs[0], B: "ISS_KEY", Err: "Invalid file read"})
 
 	// Validation
-	assert.Equal(&assert.EqualIn{A: token.Claims.Iss, B: iss, Err: "Invalid Issuer in JWT"})
+	assert.Equal(&assert.EqualIn{A: *(token.Headers), B: Headers{Alg: "RS256", Typ: "JWT"}, Err: "Invalid JWT headers"})
+	assert.Equal(&assert.EqualIn{A: token.Claims.Iss, B: objs[1], Err: "Invalid Issuer in JWT"})
 	// assert.Equal(&assert.EqualIn{A: token.Claims.Sub, B: Subject, Err: "Invalid subject in JWT"})
 	// assert.Equal(&assert.EqualIn{A: token.Claims.Username, B: Username, Err: "Invalid username in JWT"})
 	duration := token.Claims.Exp - token.Claims.Iat
-	assert.LessThan(&assert.LtIn{A: duration, B: 0, Err: "Invalid token times"})
+	assert.LessThan(&assert.LtIn{A: 0, B: duration, Err: "Invalid token times"})
 	assert.LessThan(&assert.LtIn{A: 86400, B: duration, Err: "Expired token"})
 	return validateSignature(token)
 }
@@ -68,7 +68,7 @@ func decodeJWT(token *Token) error {
 }
 
 func validateSignature(token *Token) (bool, error) {
-	hashed := sha256.Sum256([]byte(token.Signature.string))
+	hashed := sha256.Sum256([]byte(fmt.Sprintf("%s.%s.", token.Encoded[0], token.Encoded[1])))
 	err := rsa.VerifyPKCS1v15(token.PublicKey, crypto.SHA256, hashed[:], []byte(token.Signature.string))
 	if err != nil {
 		return false, fmt.Errorf("Error verifying JWT signature: %s", err)
