@@ -32,9 +32,7 @@ type Signature struct {
 
 type UserInfo struct {
 	ID       string
-	Username string // not unique
-	Email    string
-	Password string
+	Username string
 }
 
 type SecretFilenames struct {
