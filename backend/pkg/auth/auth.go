@@ -2,23 +2,40 @@ package auth
 
 import (
 	"bufio"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net"
+	"os"
+	"strings"
 
+	"github.com/cfung89/messaging/backend/pkg/assert"
+	"github.com/cfung89/messaging/backend/pkg/db"
 	"github.com/cfung89/messaging/backend/pkg/handlers"
 	"github.com/cfung89/messaging/backend/pkg/server"
 )
 
 type AuthServer struct {
 	server.BaseServer
+	DB *sql.DB
 }
 
 type AuthObj struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
+}
+
+func (s *AuthServer) InitDB() error {
+	dbSecret, err := os.ReadFile("../secrets/authDB.key")
+	if err != nil {
+		return fmt.Errorf("Unable to read issuer from file: %s", err)
+	}
+	objs := strings.Split(string(dbSecret), "=")
+	assert.Equal(&assert.EqualIn{A: objs[0], B: "AuthDbSecret", Err: "Invalid file read"})
+	s.DB, err = db.OpenDB(objs[1], 5432)
+	return err
 }
 
 func (s *AuthServer) HandleConnection(conn *net.Conn) {

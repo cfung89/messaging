@@ -64,10 +64,11 @@ VALUES ($1, $2, $3) RETURNING id`
 	return id, nil
 }
 
-func QueryUsersAuth(db *sql.DB, uid int) (string, error) {
+func QueryUsersAuth(db *sql.DB, username string) (string, error) {
 	query := "SELECT username, password usersAuth where uid = $1"
-	var username string
-	err := db.QueryRow(query, uid).Scan(&username)
+	var uid int
+	var password string
+	err := db.QueryRow(query, username).Scan(&uid, &password)
 	if err != nil {
 		return "", err
 	}
