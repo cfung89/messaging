@@ -10,9 +10,9 @@ import (
 func TestGenerate(t *testing.T) {
 	userinfo := &jwt.UserInfo{}
 	filenames := &jwt.SecretFilenames{
-		Iss:        "../iss.env",
-		PrivateKey: "../private.pem",
-		PublicKey:  "../public.pem",
+		Iss:        "../secrets/iss.env",
+		PrivateKey: "../secrets/private.pem",
+		PublicKey:  "../secrets/public.pem",
 	}
 	token, err := jwt.GenerateToken(userinfo, filenames)
 	if err != nil {
@@ -24,9 +24,9 @@ func TestGenerate(t *testing.T) {
 func TestValidation(t *testing.T) {
 	userinfo := &jwt.UserInfo{}
 	filenames := &jwt.SecretFilenames{
-		Iss:        "../iss.env",
-		PrivateKey: "../private.pem",
-		PublicKey:  "../public.pem",
+		Iss:        "../secrets/iss.env",
+		PrivateKey: "../secrets/private.pem",
+		PublicKey:  "../secrets/public.pem",
 	}
 	token, err := jwt.GenerateToken(userinfo, filenames)
 	if err != nil {

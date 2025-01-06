@@ -14,17 +14,24 @@ import (
 	"github.com/cfung89/messaging/backend/pkg/assert"
 	"github.com/cfung89/messaging/backend/pkg/db"
 	"github.com/cfung89/messaging/backend/pkg/handlers"
+	"github.com/cfung89/messaging/backend/pkg/jwt"
 	"github.com/cfung89/messaging/backend/pkg/server"
 )
 
 type AuthServer struct {
 	server.BaseServer
-	DB *sql.DB
+	DB *db.AuthDB
 }
 
-type AuthObj struct {
+type signUpResponse struct {
+	Id       string `json:"id"`
 	Username string `json:"username"`
-	Password string `json:"password"`
+}
+
+type loginResponse struct {
+	Id       string `json:"id"`
+	Username string `json:"username"`
+	Token    string `json:"token"`
 }
 
 func (s *AuthServer) InitDB() error {
@@ -34,7 +41,8 @@ func (s *AuthServer) InitDB() error {
 	}
 	objs := strings.Split(string(dbSecret), "=")
 	assert.Equal(&assert.EqualIn{A: objs[0], B: "AuthDbSecret", Err: "Invalid file read"})
-	s.DB, err = db.OpenDB(objs[1], 5432)
+	s.DB = &db.AuthDB{}
+	err = s.DB.OpenDB(objs[1], 5432)
 	return err
 }
 
@@ -50,7 +58,7 @@ func (s *AuthServer) HandleConnection(conn *net.Conn) {
 			log.Fatalln(err)
 		}
 	}
-	body := &AuthObj{}
+	body := &db.UsersAuth{}
 	err := json.Unmarshal([]byte(request["Body"]), body)
 	if err != nil {
 		log.Println(err)
@@ -58,37 +66,73 @@ func (s *AuthServer) HandleConnection(conn *net.Conn) {
 
 	switch {
 	case request["URL"] == "/signup":
-		log.Println("signup detected")
-
-		err := handlers.TestHandler(conn)
-		if err != nil {
+		err := s.DB.QueryUser(body)
+		if err != sql.ErrNoRows {
+			if err == nil {
+				handlers.UnauthorizedHandler(conn)
+				log.Println("Duplicate username")
+				return
+			}
+			handlers.InternalServerErrorHandler(conn)
 			log.Println(err)
+			return
 		}
-		(*conn).Close()
+		err = s.DB.InsertUsers(body)
+		if err != nil {
+			handlers.InternalServerErrorHandler(conn)
+			log.Println(err)
+			return
+		}
+		content, err := json.Marshal(&signUpResponse{Id: body.UID, Username: body.Username})
+		if err != nil {
+			handlers.InternalServerErrorHandler(conn)
+			log.Println(err)
+			return
+		}
+		response := fmt.Sprintf("HTTP/1.1 202 Accepted\r\nContent-Type: application/json\r\nContent-Length: %d\r\n\r\n%s", len(content), string(content))
+		_, err = (*conn).Write([]byte(response))
+		if err != nil {
+			handlers.InternalServerErrorHandler(conn)
+			log.Println(err)
+			return
+		}
+
 	case request["URL"] == "/login":
-		log.Println("login detected")
-
-		// check database for username/password
-		// if username/password not valid: handlers.UnauthorizedHandler()
-		// return
-		// if valid
-		var content string
-		contentLength := len([]byte(content))
-		response := fmt.Sprintf("HTTP/1.1 202 Accepted\r\nContent-Type: application/json\r\nContent-Length: %d\r\n\r\n%s", contentLength, content)
-		_, err := (*conn).Write([]byte(response))
-
-		err = handlers.TestHandler(conn)
+		err = s.DB.QueryUser(body)
 		if err != nil {
+			handlers.InternalServerErrorHandler(conn)
+			log.Println(err)
+			return
+		}
+		if body.DBPassword != body.Password {
+			handlers.UnauthorizedHandler(conn)
+			return
+		}
+		filenames := &jwt.SecretFilenames{Iss: "../secrets/iss.env", PrivateKey: "../secrets/private.pem"}
+		token, err := jwt.GenerateToken(&jwt.UserInfo{ID: body.UID, Username: body.Username}, filenames)
+		if err != nil {
+			handlers.InternalServerErrorHandler(conn)
+			log.Println(err)
+			return
+		}
+
+		// Response
+		content, err := json.Marshal(&loginResponse{Id: body.UID, Username: body.Username, Token: token.Raw})
+		if err != nil {
+			handlers.InternalServerErrorHandler(conn)
+			log.Println(err)
+			return
+		}
+		response := fmt.Sprintf("HTTP/1.1 202 Accepted\r\nContent-Type: application/json\r\nContent-Length: %d\r\n\r\n%s", len(content), string(content))
+		_, err = (*conn).Write([]byte(response))
+		if err != nil {
+			handlers.InternalServerErrorHandler(conn)
 			log.Println(err)
 		}
-		fmt.Println("response sent")
-		(*conn).Close()
 	default:
 		err := handlers.NotFoundHandler(conn)
 		if err != nil {
 			log.Println(err)
 		}
-		(*conn).Close()
 	}
-	return
 }

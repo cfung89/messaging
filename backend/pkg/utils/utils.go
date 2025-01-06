@@ -7,6 +7,8 @@ import (
 	"encoding/pem"
 	"fmt"
 	"os"
+
+	"github.com/google/uuid"
 )
 
 func IsJSON(str string) bool {
@@ -44,4 +46,8 @@ func LoadPrivateKey(filename string) (*rsa.PrivateKey, error) {
 		return nil, fmt.Errorf("Error parsing private key: %s", err)
 	}
 	return privateKey.(*rsa.PrivateKey), nil
+}
+
+func GenerateUUID() uuid.UUID {
+	return uuid.New()
 }
