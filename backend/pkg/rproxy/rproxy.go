@@ -20,26 +20,23 @@ type ReverseProxy struct {
 	Out *net.Conn
 }
 
+func ForwardConnection(conn *net.Conn, request map[string]string) {
+}
+
 func (s *ReverseProxy) HandleConnection(conn *net.Conn) {
 	reader := bufio.NewReader(*conn)
 	request, readErr := s.BaseServer.HandleHTTPRequest(reader)
 	if readErr != nil && readErr != io.EOF {
 		log.Fatalf("Failed to read request: %s\n", readErr)
 	}
-	// if request["Method"] != "POST" {
-	// 	err := handlers.BadRequestHandler(conn)
-	// 	if err != nil {
-	// 		log.Fatalln(err)
-	// 	}
-	// }
 
-	// check jwt
+	// JWT validation
 	filenames := &jwt.SecretFilenames{
 		Iss:       "../secrets/iss.env",
 		PublicKey: "../secrets/public.pem",
 	}
 	authorization := strings.Split(request["Authorization"], " ")
-	assert.Equal(&assert.EqualIn{A: authorization[0], B: "Bearer", Err: "Authorization header is not Bearer"})
+	assert.Equal(&assert.EqualIn{A: authorization[0], B: "Bearer", Err: "Authorization header is not of type Bearer"})
 	token := authorization[1]
 	validJWT, err := jwt.ValidateJWT(token, filenames)
 	if err != nil {

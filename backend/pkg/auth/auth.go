@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -34,7 +35,10 @@ type loginResponse struct {
 	Token    string `json:"token"`
 }
 
-func (s *AuthServer) InitDB() error {
+func (s *AuthServer) InitDB(port int) error {
+	if s.DB != nil {
+		return errors.New("Server already has a database")
+	}
 	dbSecret, err := os.ReadFile("../secrets/authDB.key")
 	if err != nil {
 		return fmt.Errorf("Unable to read issuer from file: %s", err)
@@ -42,7 +46,7 @@ func (s *AuthServer) InitDB() error {
 	objs := strings.Split(string(dbSecret), "=")
 	assert.Equal(&assert.EqualIn{A: objs[0], B: "AuthDbSecret", Err: "Invalid file read"})
 	s.DB = &db.AuthDB{}
-	err = s.DB.OpenDB(objs[1], 5432)
+	err = s.DB.OpenDB(objs[1], port)
 	return err
 }
 
