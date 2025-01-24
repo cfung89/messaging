@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/cfung89/messaging/backend/pkg/assert"
+	"github.com/cfung89/messaging/backend/pkg/handlers"
 	"github.com/cfung89/messaging/backend/pkg/jwt"
 	"github.com/cfung89/messaging/backend/pkg/server"
 )
@@ -16,11 +17,15 @@ const ServerPort = 8000
 
 type ReverseProxy struct {
 	server.BaseServer
-	In  *net.Conn
-	Out *net.Conn
+	Client *net.Conn
+	Server *net.Conn
 }
 
-func ForwardConnection(conn *net.Conn, request map[string]string) {
+func (s *ReverseProxy) ForwardConnection() {
+	err := handlers.MessageSendHandler(s.Client, "")
+	if err != nil {
+		log.Println(err)
+	}
 }
 
 func (s *ReverseProxy) HandleConnection(conn *net.Conn) {

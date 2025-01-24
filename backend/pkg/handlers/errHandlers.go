@@ -5,13 +5,6 @@ import (
 	"net"
 )
 
-func UserRequestHandler(userID string, conn *net.Conn) error {
-	response := userID
-	_, err := (*conn).Write([]byte(response))
-	(*conn).Close()
-	return err
-}
-
 func BadRequestHandler(conn *net.Conn) error {
 	content := "Bad Request"
 	response := fmt.Sprintf("HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len([]byte(content)), content)
@@ -47,14 +40,6 @@ func InternalServerErrorHandler(conn *net.Conn) error {
 func BadGatewayHandler(conn *net.Conn) error {
 	content := "Bad Gateway"
 	response := fmt.Sprintf("HTTP/1.1 502 Bad Gateway\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len([]byte(content)), content)
-	_, err := (*conn).Write([]byte(response))
-	(*conn).Close()
-	return err
-}
-
-func TestHandler(conn *net.Conn) error {
-	content := "Test OK"
-	response := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len([]byte(content)), content)
 	_, err := (*conn).Write([]byte(response))
 	(*conn).Close()
 	return err
