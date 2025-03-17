@@ -29,7 +29,7 @@ func (db *BaseDB) OpenDB(secret string, port int) error {
 	}
 	db.DB = b
 	defer db.DB.Close()
-	assert.NotNil(db.CheckHealthDB())
+	assert.Error(db.CheckHealthDB())
 	return nil
 }
 

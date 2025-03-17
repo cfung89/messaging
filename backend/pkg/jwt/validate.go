@@ -16,7 +16,7 @@ import (
 
 func ValidateJWT(jwtStr string, filenames *SecretFilenames) (bool, error) {
 	arr := strings.SplitN(jwtStr, ".", 3)
-	assert.Equal(&assert.EqualIn{A: len(arr), B: 3, Err: "JWT is not 3 parts."})
+	assert.Assert(len(arr) == 3, "JWT is not 3 parts")
 	publicKey, err := utils.LoadPublicKey(filenames.PublicKey)
 	if err != nil {
 		return false, err
@@ -33,23 +33,24 @@ func ValidateJWT(jwtStr string, filenames *SecretFilenames) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	assert.NotNil(json.Unmarshal([]byte(token.Parts[0]), token.Headers))
-	assert.NotNil(json.Unmarshal([]byte(token.Parts[1]), token.Claims))
+	assert.Error(json.Unmarshal([]byte(token.Parts[0]), token.Headers))
+	assert.Error(json.Unmarshal([]byte(token.Parts[1]), token.Claims))
 	iss, err := os.ReadFile(filenames.Iss)
 	if err != nil {
 		return false, fmt.Errorf("Unable to read issuer from file: %s", err)
 	}
 	objs := strings.Split(string(iss), "=")
-	assert.Equal(&assert.EqualIn{A: objs[0], B: "ISS_KEY", Err: "Invalid file read"})
+	assert.Assert(objs[0] == "ISS_KEY", "Invalid file read")
 
 	// Validation
-	assert.Equal(&assert.EqualIn{A: *(token.Headers), B: Headers{Alg: "RS256", Typ: "JWT"}, Err: "Invalid JWT headers"})
-	assert.Equal(&assert.EqualIn{A: token.Claims.Iss, B: objs[1], Err: "Invalid Issuer in JWT"})
-	// assert.Equal(&assert.EqualIn{A: token.Claims.Sub, B: Subject, Err: "Invalid subject in JWT"})
-	// assert.Equal(&assert.EqualIn{A: token.Claims.Username, B: Username, Err: "Invalid username in JWT"})
+	assert.Assert(token.Headers.Alg == "RS256", "Invalid JWT headers Alg")
+	assert.Assert(token.Headers.Typ == "JWT", "Invalid JWT headers Typ")
+	assert.Assert(token.Claims.Iss == objs[1], "Invalid Issuer in JWT")
+	// assert.Assert(token.Claims.Sub == Subject, "Invalid subject in JWT"})
+	// assert.Assert(token.Claims.Username == Username, "Invalid username in JWT"})
 	duration := token.Claims.Exp - token.Claims.Iat
-	assert.LessThan(&assert.LtIn{A: 0, B: duration, Err: "Invalid token times"})
-	assert.LessThan(&assert.LtIn{A: 86400, B: duration, Err: "Expired token"})
+	assert.Assert(0 < duration, "Invalid token times")
+	assert.Assert(86400 > duration, "Expired token")
 	return validateSignature(token)
 }
 

@@ -23,7 +23,7 @@ func GenerateToken(info *UserInfo, filenames *SecretFilenames) (*Token, error) {
 		return nil, fmt.Errorf("Unable to read issuer from file: %s", err)
 	}
 	objs := strings.Split(string(iss), "=")
-	assert.Equal(&assert.EqualIn{A: objs[0], B: "ISS_KEY", Err: "Invalid file read"})
+	assert.Assert(objs[0] == "ISS_KEY", "Invalid file read")
 	privateKey, err := utils.LoadPrivateKey(filenames.PrivateKey)
 	if err != nil {
 		return nil, err

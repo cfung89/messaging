@@ -44,7 +44,7 @@ func (s *AuthServer) InitDB(port int) error {
 		return fmt.Errorf("Unable to read issuer from file: %s", err)
 	}
 	objs := strings.Split(string(dbSecret), "=")
-	assert.Equal(&assert.EqualIn{A: objs[0], B: "AuthDbSecret", Err: "Invalid file read"})
+	assert.Assert(objs[0] == "AuthDbSecret", "Invalid file read")
 	s.DB = &db.AuthDB{}
 	err = s.DB.OpenDB(objs[1], port)
 	return err

@@ -2,9 +2,11 @@ package server
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"log"
+	"log/slog"
 	"net"
 	"strconv"
 	"strings"
@@ -18,21 +20,30 @@ type Server interface {
 
 type BaseServer struct {
 	Server Server
+
+	ctx    context.Context
+	cancel context.CancelFunc
+	closed bool
+	logger *slog.Logger
 }
 
 func (b *BaseServer) Start(port int) {
+	b.logger = slog.Default()
+	b.ctx, b.cancel = context.WithCancel(context.Background())
+	b.closed = false
+
 	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		log.Println("Next port, taken: ", port)
 		port += 1
 	}
 	defer ln.Close()
-	log.Printf("Server listening on http://localhost:%d\n\n", port)
+	b.logger.Info(fmt.Sprintf("Server listening on http://localhost:%d\n\n", port))
 
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
-			log.Println("Connection error:", err)
+			b.logger.Error("Unable to connect to client", "error", err)
 			continue
 		}
 		defer conn.Close()
@@ -48,7 +59,7 @@ func (b *BaseServer) HandleHTTPRequest(reader *bufio.Reader) (map[string]string,
 		// end of request
 		return nil, io.EOF
 	} else if err != nil {
-		log.Println("Error reading line:", line)
+		b.logger.Error("Unable to read line from HTTP request", "error", err)
 	}
 	parts := strings.Split(strings.TrimSpace(line), " ")
 	if len(parts) != 3 {
@@ -65,7 +76,7 @@ func (b *BaseServer) HandleHTTPRequest(reader *bufio.Reader) (map[string]string,
 			// end of request
 			break
 		} else if err != nil {
-			log.Println("Error reading line:", line)
+			b.logger.Error("Unable to read line from HTTP request", "error", err)
 			break
 		}
 
@@ -74,7 +85,7 @@ func (b *BaseServer) HandleHTTPRequest(reader *bufio.Reader) (map[string]string,
 			// end of request
 			break
 		} else if len(parts) != 2 {
-			log.Println("Error in input, not 2 parts")
+			b.logger.Error("Unable to parse HTTP request", "error", "Error in input, not 2 parts")
 			break
 		}
 		if parts[0] == "Content-Length" {

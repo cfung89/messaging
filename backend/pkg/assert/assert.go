@@ -4,42 +4,21 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"runtime"
 )
 
-type EqualIn struct {
-	A   any
-	B   any
-	Err string
-}
-
-func Equal(input *EqualIn) {
-	if input.A == nil || input.B == nil {
-		slog.Error("Error: nil value in assert input")
-		os.Exit(1)
-	}
-	if input.A != input.B {
-		slog.Error(fmt.Sprintf("Mismatch: %s != %s", input.A, input.B), "error", input.Err)
+func Assert(truth bool, msg string) {
+	if !truth {
+		pc, _, _, _ := runtime.Caller(1)
+		slog.Error(fmt.Sprintf("(%s): %s", runtime.FuncForPC(pc).Name(), msg))
 		os.Exit(1)
 	}
 }
 
-type LtIn struct {
-	A   int64
-	B   int64
-	Err string
-}
-
-// date A < date B
-func LessThan(input *LtIn) {
-	if input.A > input.B {
-		slog.Error(fmt.Sprintf("%d is not less than %d", input.A, input.B), "error", input.Err)
-		os.Exit(1)
-	}
-}
-
-func NotNil(val error) {
-	if val != nil {
-		slog.Error(val.Error())
+func Error(err error) {
+	if err != nil {
+		pc, _, _, _ := runtime.Caller(1)
+		slog.Error(fmt.Sprintf("(%s): %s", runtime.FuncForPC(pc).Name(), err.Error()))
 		os.Exit(1)
 	}
 }
